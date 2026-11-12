@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sekans Hizalama · Rust/WASM</title>
+  <meta name="description" content="Needleman–Wunsch global hizalamasını Rust + WebAssembly ile tarayıcıda, adım adım görselleştiren araç.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Sekans Hizalama</h1>
+      <p class="subtitle" id="subtitle">Needleman–Wunsch global hizalama · DP matrisi adım adım</p>
+    </div>
+    <div class="badges">
+      <span class="badge">Rust → WebAssembly</span>
+      <span class="badge muted" id="version">yükleniyor…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Kontroller -->
+    <section class="panel controls" aria-labelledby="controls-title">
+      <h2 id="controls-title">Girdi</h2>
+
+      <div class="segmented" role="radiogroup" aria-label="Hizalama yöntemi">
+        <label><input type="radio" name="mode" value="global" checked><span>Global<small>Needleman–Wunsch</small></span></label>
+        <label><input type="radio" name="mode" value="local"><span>Lokal<small>Smith–Waterman</small></span></label>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label for="seqA">Dizi A</label>
+          <span class="count" id="lenA">0</span>
+        </div>
+        <textarea id="seqA" rows="3" spellcheck="false" autocomplete="off" placeholder="ör. GATTACA veya FASTA yapıştır"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label for="seqB">Dizi B</label>
+          <span class="count" id="lenB">0</span>
+        </div>
+        <textarea id="seqB" rows="3" spellcheck="false" autocomplete="off" placeholder="ör. GCATGCU"></textarea>
+      </div>
+
+      <div class="samples" id="samples" role="group" aria-label="Hazır örnekler"></div>
+
+      <fieldset class="scoring">
+        <legend>Skorlama</legend>
+        <div class="slider">
+          <label for="match">Eşleşme</label>
+          <input type="range" id="match" min="1" max="5" step="1" value="1">
+          <output for="match" id="matchOut">+1</output>
+        </div>
+        <div class="slider">
+          <label for="mismatch">Uyuşmazlık</label>
+          <input type="range" id="mismatch" min="-5" max="0" step="1" value="-1">
+          <output for="mismatch" id="mismatchOut">−1</output>
+        </div>
+        <div class="slider">
+          <label for="gap">Boşluk</label>
+          <input type="range" id="gap" min="-5" max="0" step="1" value="-1">
+          <output for="gap" id="gapOut">−1</output>
+        </div>
+      </fieldset>
+
+      <fieldset class="scoring">
+        <legend>Animasyon</legend>
+        <div class="slider">
+          <label for="speed">Hız</label>
+          <input type="range" id="speed" min="1" max="10" step="1" value="5">
+          <output for="speed" id="speedOut">5</output>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="arrows" checked>
+          Yön oklarını göster
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="run">Hizala</button>
+        <button type="button" class="btn" id="skip" disabled>Animasyonu atla</button>
+      </div>
+
+      <p class="error" id="error" role="alert" hidden></p>
+    </section>
+
+    <!-- Sonuç -->
+    <section class="panel result" aria-labelledby="result-title">
+      <h2 id="result-title">Sonuç</h2>
+      <dl class="stats" id="stats">
+        <div><dt>Skor</dt><dd id="stScore">–</dd></div>
+        <div><dt>Özdeşlik</dt><dd id="stIdentity">–</dd></div>
+        <div><dt>Eşleşme</dt><dd id="stMatches">–</dd></div>
+        <div><dt>Uyuşmazlık</dt><dd id="stMismatches">–</dd></div>
+        <div><dt>Boşluk</dt><dd id="stGaps">–</dd></div>
+        <div><dt>WASM süresi</dt><dd id="stTime">–</dd></div>
+      </dl>
+      <div class="alignment" id="alignment" aria-live="polite"></div>
+    </section>
+
+    <!-- Matris -->
+    <section class="panel matrix-panel" aria-labelledby="matrix-title">
+      <div class="matrix-head">
+        <h2 id="matrix-title">DP Matrisi</h2>
+        <ul class="legend">
+          <li><span class="sw sw-path"></span>Traceback yolu</li>
+          <li><span class="sw sw-src"></span>Seçilen komşu</li>
+          <li><span class="sw sw-nb"></span>Aday komşu</li>
+        </ul>
+      </div>
+      <div class="cell-info" id="cellInfo">Bir hücrenin üzerine gel ya da dokun: değerinin nasıl hesaplandığını gör.</div>
+      <div class="matrix-scroll" id="matrixScroll">
+        <div class="matrix show-arrows" id="matrix"></div>
+      </div>
+      <p class="note" id="matrixNote" hidden></p>
+    </section>
+
+    <!-- Benchmark -->
+    <section class="panel bench" aria-labelledby="bench-title">
+      <div class="bench-head">
+        <div>
+          <h2 id="bench-title">Benchmark: JavaScript vs Rust/WASM</h2>
+          <p class="muted-text">
+            Aynı algoritma (lineer bellekli skor hesaplama) iki dilde, rastgele DNA dizileri üzerinde.
+            Her boyut için 1 ısınma + 5 ölçüm, medyan süre.
+          </p>
+        </div>
+        <button type="button" class="btn primary" id="benchRun">Başlat</button>
+      </div>
+      <div id="benchOut" class="bench-out"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    Rust çekirdeği · wasm-bindgen · vanilla JS — tüm hesaplama tarayıcında yapılır, veri hiçbir yere gönderilmez.
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

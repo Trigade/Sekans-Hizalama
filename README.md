@@ -2,7 +2,7 @@
 
 Needleman–Wunsch (global) ve Smith–Waterman (lokal) sekans hizalama algoritmalarını **tarayıcıda, adım adım** görselleştiren interaktif bir araç. Hesaplama çekirdeği Rust ile yazılmış, WebAssembly'ye derlenmiştir. Kurulum gerektirmez; tüm hesaplama kullanıcının tarayıcısında yapılır.
 
-**🔗 Canlı demo: https://KULLANICI_ADI.github.io/seq-align-wasm/**
+**🔗 Canlı demo: https://github.com/Trigade/Sekans-Hizalama.git**
 
 <!-- Buraya demo GIF'i ekle: ![Demo](docs/demo.gif) -->
 

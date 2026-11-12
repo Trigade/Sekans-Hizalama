@@ -4,6 +4,7 @@ use crate::scoring::{
 
 pub fn smith_waterman(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResult, AlignError> {
     s.validate()?;
+    s.require_linear()?;
     validate_sequence(a, 'A')?;
     validate_sequence(b, 'B')?;
 
@@ -23,8 +24,8 @@ pub fn smith_waterman(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResult,
 
         for j in 1..cols {
             let diag = matrix[prev + j - 1] + s.substitution(ca, b[j - 1]);
-            let up = matrix[prev + j] + s.gap;
-            let left = matrix[row + j - 1] + s.gap;
+            let up = matrix[prev + j] + s.gap();
+            let left = matrix[row + j - 1] + s.gap();
 
             let (cell, dir) = if diag >= up && diag >= left {
                 (diag, Dir::Diag)
@@ -98,11 +99,14 @@ pub fn smith_waterman(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResult,
         start,
         end: best_cell,
         stats,
+        algorithm: "smith-waterman",
+        layers: None,
     })
 }
 
 pub fn smith_waterman_score(a: &[u8], b: &[u8], s: Scoring) -> Result<i32, AlignError> {
     s.validate()?;
+    s.require_linear()?;
     validate_sequence(a, 'A')?;
     validate_sequence(b, 'B')?;
 
@@ -115,8 +119,8 @@ pub fn smith_waterman_score(a: &[u8], b: &[u8], s: Scoring) -> Result<i32, Align
         curr[0] = 0;
         for j in 1..cols {
             let diag = prev[j - 1] + s.substitution(ca, b[j - 1]);
-            let up = prev[j] + s.gap;
-            let left = curr[j - 1] + s.gap;
+            let up = prev[j] + s.gap();
+            let left = curr[j - 1] + s.gap();
             let v = diag.max(up).max(left).max(0);
             curr[j] = v;
             best = best.max(v);
@@ -191,7 +195,7 @@ mod tests {
             .aligned_a
             .bytes()
             .zip(r.aligned_b.bytes())
-            .map(|(x, y)| if x == b'-' || y == b'-' { s.gap } else { s.substitution(x, y) })
+            .map(|(x, y)| if x == b'-' || y == b'-' { s.gap() } else { s.substitution(x, y) })
             .sum();
         assert_eq!(rescored, r.score);
     }

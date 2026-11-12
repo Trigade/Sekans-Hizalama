@@ -4,6 +4,7 @@ use crate::scoring::{
 
 pub fn needleman_wunsch(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResult, AlignError> {
     s.validate()?;
+    s.require_linear()?;
     validate_sequence(a, 'A')?;
     validate_sequence(b, 'B')?;
 
@@ -14,11 +15,11 @@ pub fn needleman_wunsch(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResul
     let mut dirs = vec![Dir::None; rows * cols];
 
     for i in 1..rows {
-        matrix[i * cols] = i as i32 * s.gap;
+        matrix[i * cols] = i as i32 * s.gap();
         dirs[i * cols] = Dir::Up;
     }
     for j in 1..cols {
-        matrix[j] = j as i32 * s.gap;
+        matrix[j] = j as i32 * s.gap();
         dirs[j] = Dir::Left;
     }
 
@@ -29,8 +30,8 @@ pub fn needleman_wunsch(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResul
 
         for j in 1..cols {
             let diag = matrix[prev + j - 1] + s.substitution(ca, b[j - 1]);
-            let up = matrix[prev + j] + s.gap;
-            let left = matrix[row + j - 1] + s.gap;
+            let up = matrix[prev + j] + s.gap();
+            let left = matrix[row + j - 1] + s.gap();
 
             let (best, dir) = if diag >= up && diag >= left {
                 (diag, Dir::Diag)
@@ -94,24 +95,27 @@ pub fn needleman_wunsch(a: &[u8], b: &[u8], s: Scoring) -> Result<AlignmentResul
         start: (0, 0),
         end: (rows - 1, cols - 1),
         stats,
+        algorithm: "needleman-wunsch",
+        layers: None,
     })
 }
 
 pub fn needleman_wunsch_score(a: &[u8], b: &[u8], s: Scoring) -> Result<i32, AlignError> {
     s.validate()?;
+    s.require_linear()?;
     validate_sequence(a, 'A')?;
     validate_sequence(b, 'B')?;
 
     let cols = b.len() + 1;
-    let mut prev: Vec<i32> = (0..cols).map(|j| j as i32 * s.gap).collect();
+    let mut prev: Vec<i32> = (0..cols).map(|j| j as i32 * s.gap()).collect();
     let mut curr = vec![0i32; cols];
 
     for (i, &ca) in a.iter().enumerate() {
-        curr[0] = (i as i32 + 1) * s.gap;
+        curr[0] = (i as i32 + 1) * s.gap();
         for j in 1..cols {
             let diag = prev[j - 1] + s.substitution(ca, b[j - 1]);
-            let up = prev[j] + s.gap;
-            let left = curr[j - 1] + s.gap;
+            let up = prev[j] + s.gap();
+            let left = curr[j - 1] + s.gap();
             curr[j] = diag.max(up).max(left);
         }
         std::mem::swap(&mut prev, &mut curr);
@@ -171,7 +175,7 @@ mod tests {
             .aligned_a
             .bytes()
             .zip(r.aligned_b.bytes())
-            .map(|(x, y)| if x == b'-' || y == b'-' { S.gap } else { S.substitution(x, y) })
+            .map(|(x, y)| if x == b'-' || y == b'-' { S.gap() } else { S.substitution(x, y) })
             .sum();
         assert_eq!(rescored, r.score);
     }

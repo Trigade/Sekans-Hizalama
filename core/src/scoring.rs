@@ -2,39 +2,89 @@ use serde::{Serialize, Serializer};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Substitution {
+    Simple { match_score: i32, mismatch: i32 },
+    Blosum62,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Scoring {
-    pub match_score: i32,
-    pub mismatch: i32,
-    pub gap: i32,
+    pub subst: Substitution,
+    pub gap_open: i32,
+    pub gap_extend: i32,
 }
 
 impl Default for Scoring {
     fn default() -> Self {
-        Self { match_score: 1, mismatch: -1, gap: -1 }
+        Self::new(1, -1, -1)
     }
 }
 
 impl Scoring {
     pub const fn new(match_score: i32, mismatch: i32, gap: i32) -> Self {
-        Self { match_score, mismatch, gap }
+        Self {
+            subst: Substitution::Simple { match_score, mismatch },
+            gap_open: 0,
+            gap_extend: gap,
+        }
+    }
+
+    pub const fn with_gaps(subst: Substitution, gap_open: i32, gap_extend: i32) -> Self {
+        Self { subst, gap_open, gap_extend }
+    }
+
+    pub const fn blosum62(gap_open: i32, gap_extend: i32) -> Self {
+        Self::with_gaps(Substitution::Blosum62, gap_open, gap_extend)
+    }
+
+    #[inline(always)]
+    pub fn is_affine(&self) -> bool {
+        self.gap_open != 0
+    }
+
+    #[inline(always)]
+    pub fn gap(&self) -> i32 {
+        self.gap_extend
+    }
+
+    pub fn gap_cost(&self, len: usize) -> i32 {
+        if len == 0 { 0 } else { self.gap_open + self.gap_extend * len as i32 }
     }
 
     pub fn validate(&self) -> Result<(), AlignError> {
-        if self.match_score <= 0 {
-            return Err(AlignError::InvalidScoring("match_score pozitif olmalı"));
+        if let Substitution::Simple { match_score, mismatch } = self.subst {
+            if match_score <= 0 {
+                return Err(AlignError::InvalidScoring("eşleşme puanı pozitif olmalı"));
+            }
+            if mismatch >= match_score {
+                return Err(AlignError::InvalidScoring("uyuşmazlık puanı eşleşmeden küçük olmalı"));
+            }
         }
-        if self.mismatch >= self.match_score {
-            return Err(AlignError::InvalidScoring("mismatch, match_score'dan küçük olmalı"));
+        if self.gap_extend > 0 {
+            return Err(AlignError::InvalidScoring("boşluk (uzatma) cezası sıfır veya negatif olmalı"));
         }
-        if self.gap > 0 {
-            return Err(AlignError::InvalidScoring("gap sıfır veya negatif olmalı"));
+        if self.gap_open > 0 {
+            return Err(AlignError::InvalidScoring("boşluk açma cezası sıfır veya negatif olmalı"));
         }
         Ok(())
     }
 
+    pub fn require_linear(&self) -> Result<(), AlignError> {
+        if self.is_affine() {
+            Err(AlignError::InvalidScoring("bu algoritma yalnızca lineer boşluk cezası destekler"))
+        } else {
+            Ok(())
+        }
+    }
+
     #[inline(always)]
     pub fn substitution(&self, x: u8, y: u8) -> i32 {
-        if x == y { self.match_score } else { self.mismatch }
+        match self.subst {
+            Substitution::Simple { match_score, mismatch } => {
+                if x == y { match_score } else { mismatch }
+            }
+            Substitution::Blosum62 => crate::blosum::blosum62(x, y),
+        }
     }
 }
 
@@ -59,6 +109,7 @@ pub enum AlignError {
     InvalidScoring(&'static str),
     InvalidChar { seq: char, pos: usize, byte: u8 },
     TooLong { len: usize, max: usize },
+    TooLarge { cells: usize, max: usize, what: &'static str },
 }
 
 impl fmt::Display for AlignError {
@@ -73,6 +124,10 @@ impl fmt::Display for AlignError {
             Self::TooLong { len, max } => {
                 write!(f, "Dizi çok uzun: {len} karakter (üst sınır {max})")
             }
+            Self::TooLarge { cells, max, what } => write!(
+                f,
+                "Matris çok büyük: {cells} hücre ({what} için üst sınır {max}). Daha kısa diziler deneyin."
+            ),
         }
     }
 }
@@ -99,6 +154,23 @@ pub struct AlignmentResult {
     pub start: (usize, usize),
     pub end: (usize, usize),
     pub stats: AlignmentStats,
+    pub algorithm: &'static str,
+    pub layers: Option<Layers>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Layers {
+    pub m: Vec<i32>,
+    pub x: Vec<i32>,
+    pub y: Vec<i32>,
+}
+
+impl AlignmentResult {
+    pub fn strip_matrices(&mut self) {
+        self.matrix = Vec::new();
+        self.dirs = Vec::new();
+        self.layers = None;
+    }
 }
 
 impl AlignmentResult {

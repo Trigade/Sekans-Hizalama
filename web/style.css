@@ -529,6 +529,7 @@ body.intro-open { overflow: hidden; }
   background: var(--bg);
 }
 .intro[hidden] { display: none; }
+.slider[hidden] { display: none; }
 .hint[hidden], .note[hidden] { display: none; }
 
 .intro-top {
@@ -651,8 +652,8 @@ body.intro-open { overflow: hidden; }
 .steps .arrows { display: block; margin-top: 4px; color: var(--muted); font-size: 0.9rem; }
 .steps .arrows b { color: var(--accent); }
 
-.mini { margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.mini figcaption { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
+.mini-fig { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.mini-fig figcaption { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
 
 .mini-grid {
   display: grid;

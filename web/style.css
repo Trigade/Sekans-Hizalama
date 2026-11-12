@@ -190,7 +190,14 @@ textarea:focus-visible, button:focus-visible, input:focus-visible {
   background: var(--panel-2);
   border: 1px solid var(--border);
 }
-.segmented label { cursor: pointer; }
+.segmented label { cursor: pointer; position: relative; }
+.segmented.mini { padding: 3px; border-radius: 8px; }
+.segmented.mini span { padding: 4px 6px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; }
+
+.rows { display: flex; flex-direction: column; gap: 8px; transition: opacity 0.15s ease; }
+.rows.disabled { opacity: 0.4; }
+
+.hint { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--muted); }
 .segmented input { position: absolute; opacity: 0; pointer-events: none; }
 .segmented span {
   display: flex;
@@ -287,6 +294,7 @@ legend { padding: 0 4px; font-size: 0.8rem; color: var(--muted); font-weight: 60
 }
 .stats dt { font-size: 0.75rem; color: var(--muted); }
 .stats dd { margin: 2px 0 0; font: 650 1.15rem var(--mono); font-variant-numeric: tabular-nums; }
+.stats dd.algo { font: 650 0.95rem var(--sans); }
 
 .alignment {
   font: 1rem/1.25 var(--mono);
@@ -330,6 +338,7 @@ legend { padding: 0 4px; font-size: 0.8rem; color: var(--muted); font-weight: 60
 
 .cell-info {
   min-height: 2.6em;
+  overflow-x: auto;
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--panel-2);
@@ -487,7 +496,9 @@ legend { padding: 0 4px; font-size: 0.8rem; color: var(--muted); font-weight: 60
    Hareket hassasiyeti
    ========================================================================= */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  html:not(.motion-ok) *,
+  html:not(.motion-ok) *::before,
+  html:not(.motion-ok) *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }

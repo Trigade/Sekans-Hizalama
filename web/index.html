@@ -49,21 +49,37 @@
 
       <fieldset class="scoring">
         <legend>Skorlama</legend>
-        <div class="slider">
-          <label for="match">Eşleşme</label>
-          <input type="range" id="match" min="1" max="5" step="1" value="1">
-          <output for="match" id="matchOut">+1</output>
+        <div class="segmented mini" role="radiogroup" aria-label="İkame modeli">
+          <label><input type="radio" name="subst" value="simple" checked><span>Basit</span></label>
+          <label><input type="radio" name="subst" value="blosum62"><span>BLOSUM62</span></label>
+        </div>
+        <div id="simpleRows" class="rows">
+          <div class="slider">
+            <label for="match">Eşleşme</label>
+            <input type="range" id="match" min="1" max="5" step="1" value="1">
+            <output for="match" id="matchOut">+1</output>
+          </div>
+          <div class="slider">
+            <label for="mismatch">Uyuşmazlık</label>
+            <input type="range" id="mismatch" min="-5" max="0" step="1" value="-1">
+            <output for="mismatch" id="mismatchOut">−1</output>
+          </div>
+        </div>
+        <div class="segmented mini" role="radiogroup" aria-label="Boşluk modeli">
+          <label><input type="radio" name="gapModel" value="linear" checked><span>Lineer boşluk</span></label>
+          <label><input type="radio" name="gapModel" value="affine"><span>Afin (Gotoh)</span></label>
+        </div>
+        <div class="slider" id="gapOpenRow" hidden>
+          <label for="gapOpen">Açma</label>
+          <input type="range" id="gapOpen" min="-15" max="-1" step="1" value="-5">
+          <output for="gapOpen" id="gapOpenOut">−5</output>
         </div>
         <div class="slider">
-          <label for="mismatch">Uyuşmazlık</label>
-          <input type="range" id="mismatch" min="-5" max="0" step="1" value="-1">
-          <output for="mismatch" id="mismatchOut">−1</output>
-        </div>
-        <div class="slider">
-          <label for="gap">Boşluk</label>
+          <label for="gap" id="gapLabel">Boşluk</label>
           <input type="range" id="gap" min="-5" max="0" step="1" value="-1">
           <output for="gap" id="gapOut">−1</output>
         </div>
+        <p class="hint" id="scoringHint" hidden></p>
       </fieldset>
 
       <fieldset class="scoring">
@@ -97,6 +113,7 @@
         <div><dt>Uyuşmazlık</dt><dd id="stMismatches">–</dd></div>
         <div><dt>Boşluk</dt><dd id="stGaps">–</dd></div>
         <div><dt>WASM süresi</dt><dd id="stTime">–</dd></div>
+        <div class="wide"><dt>Algoritma</dt><dd id="stAlgo" class="algo">–</dd></div>
       </dl>
       <div class="alignment" id="alignment" aria-live="polite"></div>
     </section>

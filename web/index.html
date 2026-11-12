@@ -8,12 +8,165 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle" hidden>
+    <div class="intro-top">
+      <span class="intro-brand">Sekans Hizalama</span>
+      <button type="button" class="btn ghost" data-intro="close">Atla</button>
+    </div>
+
+    <div class="intro-body">
+      <!-- 1. Problem -->
+      <section class="intro-step" data-step="0">
+        <p class="kicker">1 / 5 · Problem</p>
+        <h2 id="introTitle">İki dizi ne kadar benziyor?</h2>
+        <p class="lead">
+          DNA, yalnızca dört harften (<b>A</b>, <b>C</b>, <b>G</b>, <b>T</b>) oluşan çok uzun bir metin gibidir.
+          İki canlının ya da hasta ve sağlıklı bir kişinin genini karşılaştırmak için bu metinleri
+          alt alta koyar, ne kadar örtüştüklerine bakarız.
+        </p>
+        <div class="demo-strands" aria-label="İki örnek DNA dizisi">
+          <div><span class="tag">Dizi A</span><code>G A T T A C A</code></div>
+          <div><span class="tag">Dizi B</span><code>G C A T G C U</code></div>
+        </div>
+        <p>
+          Ama diziler hiçbir zaman birebir üst üste oturmaz: bir harf <b>değişmiş</b>, <b>eksilmiş</b>
+          ya da araya <b>girmiş</b> olabilir. Telefonunuzdaki otomatik düzeltme de benzer bir iş yapar:
+        </p>
+        <div class="demo-typo">
+          <div><code>b i l g i s <span class="g">–</span> y a r</code><small>yazdığınız</small></div>
+          <div><code>b i l g i s <span class="m">a</span> y a r</code><small>kastettiğiniz</small></div>
+        </div>
+        <ul class="uses">
+          <li><b>Mutasyon bulma</b><span>Hastalığa yol açan harf değişimini yakalamak</span></li>
+          <li><b>Akrabalık</b><span>İki türün evrimsel olarak ne kadar yakın olduğunu ölçmek</span></li>
+          <li><b>Virüs takibi</b><span>Yeni bir varyantın hangi aileden geldiğini bulmak</span></li>
+        </ul>
+      </section>
+
+      <!-- 2. Puanlama -->
+      <section class="intro-step" data-step="1" hidden>
+        <p class="kicker">2 / 5 · Fikir</p>
+        <h2>Her dizilişe bir puan veririz</h2>
+        <p class="lead">İki diziyi alt alta yerleştirip her sütuna puan veriyoruz, sonra puanları topluyoruz.</p>
+        <div class="rules">
+          <span class="rule m">Aynı harf <b>+1</b></span>
+          <span class="rule x">Farklı harf <b>−1</b></span>
+          <span class="rule g">Boşluk <b>−1</b></span>
+        </div>
+        <p>Örneğin <code>GCAT</code> ile <code>GAT</code> dizilerini iki farklı şekilde dizelim:</p>
+        <div class="candidates">
+          <div class="cand win">
+            <div class="cand-head">1. diziliş <span class="pill">en iyi</span></div>
+            <div class="cols">
+              <div><i>G</i><i>G</i><em class="m">+1</em></div>
+              <div><i>C</i><i class="gap">–</i><em class="g">−1</em></div>
+              <div><i>A</i><i>A</i><em class="m">+1</em></div>
+              <div><i>T</i><i>T</i><em class="m">+1</em></div>
+            </div>
+            <div class="total">Toplam <b>+2</b></div>
+          </div>
+          <div class="cand">
+            <div class="cand-head">2. diziliş</div>
+            <div class="cols">
+              <div><i>G</i><i>G</i><em class="m">+1</em></div>
+              <div><i>C</i><i>A</i><em class="x">−1</em></div>
+              <div><i>A</i><i>T</i><em class="x">−1</em></div>
+              <div><i>T</i><i class="gap">–</i><em class="g">−1</em></div>
+            </div>
+            <div class="total">Toplam <b>−2</b></div>
+          </div>
+        </div>
+        <p class="callout">
+          Amacımız toplam puanı en yüksek dizilişi bulmak. Ama tüm ihtimalleri tek tek denemek imkânsız:
+          200 harflik iki dizi için bile olası diziliş sayısı evrendeki atom sayısından fazla.
+        </p>
+      </section>
+
+      <!-- 3. Tablo -->
+      <section class="intro-step" data-step="2" hidden>
+        <p class="kicker">3 / 5 · Yöntem</p>
+        <h2>Bir tablo doldurarak en iyisini buluruz</h2>
+        <div class="split">
+          <div>
+            <p class="lead">
+              Needleman ve Wunsch 1970'te akıllıca bir yol buldu: bir tablo kurup her kutuyu
+              <b>yalnızca bir kez</b> hesaplamak.
+            </p>
+            <ol class="steps">
+              <li>Bir diziyi üste, diğerini sola yazarız.</li>
+              <li>
+                Her kutu üç komşusuna bakar ve en yüksek puanı seçer:
+                <span class="arrows"><b>↖</b> iki harfi eşleştir · <b>↑</b> üsttekine boşluk koy · <b>←</b> soldakine boşluk koy</span>
+              </li>
+              <li>Sağ alt köşedeki sayı, mümkün olan <b>en iyi toplam puandır</b>.</li>
+              <li>Oradan okları takip ederek geri yürürüz: bu yol bize dizilişin kendisini verir.</li>
+            </ol>
+          </div>
+          <figure class="mini">
+            <div class="mini-grid" id="miniGrid" aria-label="GCAT ve GAT için doldurulmuş tablo"></div>
+            <figcaption>
+              <span><span class="sw sw-path"></span> Geri izleme yolu → <code>GCAT / G-AT</code>, puan +2</span>
+              <button type="button" class="btn ghost small" id="miniReplay">Tekrar oynat</button>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 4. Algoritmalar -->
+      <section class="intro-step" data-step="3" hidden>
+        <p class="kicker">4 / 5 · Algoritmalar</p>
+        <h2>Farklı sorulara farklı yöntemler</h2>
+        <p class="lead">Aynı tablo fikri, ihtiyaca göre küçük değişikliklerle farklı sorulara cevap verir.</p>
+        <div class="cards">
+          <article><h3>Global</h3><p class="who">Needleman–Wunsch · 1970</p><p>İki dizinin <b>tamamını</b> baştan sona hizalar. Benzer olduğunu bildiğimiz diziler için.</p></article>
+          <article><h3>Lokal</h3><p class="who">Smith–Waterman · 1981</p><p>Sadece <b>en çok benzeyen parçayı</b> bulur. Uzun bir dizide kısa bir kalıp aramak gibi.</p></article>
+          <article><h3>Afin boşluk</h3><p class="who">Gotoh · 1982</p><p>Doğada tek uzun bir boşluk, birçok küçük boşluktan daha olasıdır. Boşluk <b>açmak pahalı</b>, uzatmak ucuzdur.</p></article>
+          <article><h3>Proteinler</h3><p class="who">BLOSUM62 · 1992</p><p>Amino asitlerin birbirine ne kadar benzediğini, <b>gerçek biyolojik verilerden</b> çıkarılmış bir puan tablosuyla ölçer.</p></article>
+          <article><h3>Uzun diziler</h3><p class="who">Hirschberg · 1975</p><p>Dev tabloyu hafızada tutmak yerine problemi <b>ikiye bölerek</b> çok az bellekle çözer.</p></article>
+        </div>
+        <p class="callout">Program, seçtiğiniz ayarlara ve dizilerin uzunluğuna göre doğru algoritmayı kendisi seçer.</p>
+      </section>
+
+      <!-- 5. Nasıl yaptık -->
+      <section class="intro-step" data-step="4" hidden>
+        <p class="kicker">5 / 5 · Teknoloji</p>
+        <h2>Nasıl yaptık?</h2>
+        <div class="pipeline">
+          <div class="stage"><b>Rust</b><span>Hesaplama çekirdeği: hızlı ve bellek açısından güvenli bir programlama dili</span></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="stage"><b>WebAssembly</b><span>Rust kodu, tarayıcının doğrudan çalıştırabildiği bir biçime derlenir</span></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="stage"><b>Arayüz</b><span>HTML, CSS ve JavaScript ile tablo, animasyon ve açıklamalar</span></div>
+        </div>
+        <p class="lead">
+          Hiçbir şey kurmanıza gerek yok: tüm hesaplama <b>sizin tarayıcınızda</b> yapılır,
+          girdiğiniz diziler hiçbir sunucuya gönderilmez.
+        </p>
+        <ul class="facts">
+          <li><b>32</b><span>otomatik test her güncellemede çalışır</span></li>
+          <li><b>1.500</b><span>rastgele örnekte sonuçlar, bilimsel kütüphane Biopython ile karşılaştırıldı: hepsi aynı</span></li>
+          <li><b>4</b><span>hizalama algoritması, BLOSUM62 ile gerçek protein örnekleri (insan hemoglobini)</span></li>
+        </ul>
+        <div class="cta">
+          <button type="button" class="btn primary big" data-intro="close">Uygulamayı dene</button>
+          <a class="btn ghost" href="https://github.com/Trigade/Sekans-Hizalama" target="_blank" rel="noopener">Kaynak kod</a>
+        </div>
+      </section>
+    </div>
+
+    <nav class="intro-nav" aria-label="Tanıtım adımları">
+      <button type="button" class="btn" data-intro="prev">Geri</button>
+      <div class="dots" id="introDots"></div>
+      <button type="button" class="btn primary" data-intro="next">İleri</button>
+    </nav>
+  </div>
   <header class="top">
     <div class="brand">
       <h1>Sekans Hizalama</h1>
       <p class="subtitle" id="subtitle">Needleman–Wunsch global hizalama · DP matrisi adım adım</p>
     </div>
     <div class="badges">
+      <button type="button" class="btn ghost" id="introOpen">Nasıl çalışır?</button>
       <span class="badge">Rust → WebAssembly</span>
       <span class="badge muted" id="version">yükleniyor…</span>
     </div>
@@ -155,6 +308,7 @@
     Rust çekirdeği · wasm-bindgen · vanilla JS — tüm hesaplama tarayıcında yapılır, veri hiçbir yere gönderilmez.
   </footer>
 
+  <script type="module" src="intro.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>
